@@ -3,94 +3,78 @@ import pandas as pd
 import datetime
 from fpdf import FPDF
 
-# --- 1. SETTINGS & LICENSE ---
-MASTER_LICENSE_KEY = "PRO-MAX-200"
-SUBSCRIPTION_EXPIRY = datetime.date(2027, 1, 1)
+# --- 1. SYSTEM CALCULATIONS ---
+def get_monthly_periods(value, unit):
+    if unit == "Daily": return value * 26
+    if unit == "Weekly": return value * 4
+    return value
 
-def validate_license(key):
-    return key == MASTER_LICENSE_KEY and datetime.date.today() <= SUBSCRIPTION_EXPIRY
+def get_status(m_periods):
+    if m_periods < 40: return "🛑 Critical: Under-utilized", 1
+    if m_periods > 120: return "🚨 Overload: High Burnout", 2
+    return "✅ Efficient: Ideal Load", 3
 
-# --- 2. SMART ADVICE LOGIC ---
-def get_class_advice(students, max_cap):
-    if students < 15:
-        return "⚠️ Under-populated: Merge Class"
-    elif students > max_cap:
-        return f"🚨 Over-loaded: Max capacity is {max_cap}. Split now!"
-    elif students >= (max_cap - 5):
-        return "✅ Near Capacity: Monitor closely"
-    else:
-        return "✅ Optimized"
-
-def get_teacher_advice(periods):
-    if periods < 4: return "🛑 Critical: Under-utilized"
-    elif periods < 6: return "⚠️ Action: Increase Load"
-    return "✅ Efficient Workload"
-
-# --- 3. PAGE CONFIG ---
-st.set_page_config(page_title="Smart Resource Optimizer", layout="wide")
-
-if 'auth' not in st.session_state:
-    st.session_state.auth = False
-
-# --- 4. LOGIN ---
-if not st.session_state.auth:
-    st.title("🔐 System Activation")
-    st.subheader("Smart Resource Allocation & Institutional Optimization System")
-    school_name = st.text_input("Enter Institution Name")
-    key = st.text_input("License Key", type="password")
-    if st.button("Activate Dashboard"):
-        if validate_license(key):
-            st.session_state.auth = True
-            st.session_state.school = school_name
-            st.rerun()
-        else:
-            st.error("Invalid Key.")
-
-# --- 5. MAIN DASHBOARD ---
-else:
-    st.title(f"🏫 {st.session_state.school}")
+# --- 2. IMPROVED PDF GENERATION ---
+def generate_institutional_report(school_name, sections_data, overall_profit):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt="Smart Institutional Optimization Report", ln=True, align='C')
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Institution: {school_name}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Date: {datetime.date.today()}", ln=True, align='C')
+    pdf.ln(10)
     
-    # PROFIT SCALES (1-200)
-    st.markdown("---")
-    st.subheader("🚀 Strategic Profit Performance (Scale 1-200)")
-    col1, col2, col3 = st.columns(3)
-    curr_level = 175 # Dynamic based on your future data
-    col1.metric("Previous Level", "85/200")
-    col2.metric("Current Profit Level", f"{curr_level}/200", delta="+90")
-    col3.metric("Status", "High Efficiency")
+    # Section-wise Profit Table
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(100, 10, txt="Section Name", border=1)
+    pdf.cell(90, 10, txt="Profit Level (1-200)", border=1, ln=True)
+    
+    pdf.set_font("Arial", size=12)
+    for sec, val in sections_data.items():
+        pdf.cell(100, 10, txt=sec, border=1)
+        pdf.cell(90, 10, txt=str(val), border=1, ln=True)
+    
+    pdf.ln(10)
+    pdf.set_font("Arial", 'B', 14)
+    pdf.cell(200, 10, txt=f"OVERALL PERFORMANCE SCORE: {overall_profit} / 200", ln=True)
+    
+    return pdf.output(dest='S').encode('latin-1')
 
-    # RESOURCE TABLES
-    st.markdown("---")
-    tab_t, tab_c = st.tabs(["👨‍🏫 Teacher Efficiency", "🏫 Classroom Capacity Management"])
+# --- 3. UI LAYOUT ---
+st.title("Smart Resource Allocation & Optimization")
 
-    with tab_t:
-        st.write("### Staff Load Analysis")
-        t_data = pd.DataFrame({
-            "Teacher Name": ["Staff 1", "Staff 2"],
-            "Monthly Salary": [40000, 50000],
-            "Periods/Day": [3, 7]
-        })
-        t_data['System Advice'] = t_data['Periods/Day'].apply(get_teacher_advice)
-        st.data_editor(t_data, use_container_width=True, num_rows="dynamic")
+# Institutional Levels Data
+st.subheader("🏢 Section-Wise Profit Levels (Scale 1-200)")
+col_p, col_s, col_c = st.columns(3)
+with col_p: p_level = st.slider("Primary Profit", 1, 200, 85)
+with col_s: s_level = st.slider("Secondary Profit", 1, 200, 110)
+with col_c: c_level = st.slider("College Profit", 1, 200, 150)
 
-    with tab_c:
-        st.write("### Classroom Occupancy & Capacity Alerts")
-        st.info("Note: Admin can set 'Max Seating Capacity' for each room individually.")
-        c_data = pd.DataFrame({
-            "Class Name": ["Grade 9", "Grade 10-A", "Grade 10-B"],
-            "Current Students": [12, 58, 65],
-            "Max Seating Capacity": [40, 60, 60] # Admin sets this
-        })
-        # Applying the custom capacity logic
-        c_data['System Advice'] = c_data.apply(lambda x: get_class_advice(x['Current Students'], x['Max Seating Capacity']), axis=1)
-        st.data_editor(c_data, use_container_width=True, num_rows="dynamic")
+overall_score = int((p_level + s_level + c_level) / 3)
+st.metric("Total Institutional Profit Level", f"{overall_score}/200") [cite: 2025-12-29]
 
-    # PDF EXPORT
-    st.markdown("---")
-    if st.button("Finalize & Prepare Report"):
-        st.success("Analysis Complete. You can now download the PDF.")
-        # PDF logic here...
+# Teacher Calculator
+st.markdown("---")
+st.subheader("👨‍🏫 Dynamic Teacher Load Calculator")
+t_col1, t_col2, t_col3 = st.columns(3)
+with t_col1: unit = st.selectbox("Select Unit", ["Daily", "Weekly", "Monthly"])
+with t_col2: val = st.number_input(f"Enter {unit} Periods", value=3)
+with t_col3: 
+    m_p = get_monthly_periods(val, unit)
+    advice, _ = get_status(m_p)
+    st.write(f"Monthly Periods: **{m_p}**")
+    st.info(advice)
 
-    if st.sidebar.button("Log Out"):
-        st.session_state.auth = False
-        st.rerun()
+# PDF Export Section
+st.markdown("---")
+if st.button("Prepare Final PDF Report"):
+    sec_dict = {"Primary": p_level, "Secondary": s_level, "College": c_level}
+    pdf_bytes = generate_institutional_report("My Institution", sec_dict, overall_score)
+    
+    st.download_button(
+        label="📥 Download Professional Report",
+        data=pdf_bytes,
+        file_name="School_Optimization_Report.pdf",
+        mime="application/pdf"
+    )
