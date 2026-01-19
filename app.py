@@ -3,143 +3,131 @@ import pandas as pd
 import datetime
 from fpdf import FPDF
 
-# --- 1. SECURE LICENSE ---
+# --- 1. SECURE LICENSE SYSTEM ---
 VALID_KEY = "PRO-MAX-200" 
 def check_auth(key): return key == VALID_KEY
 
-# --- 2. LOGIC FUNCTIONS ---
-def get_class_advice(students, capacity):
-    if students < 15: return "⚠️ Critical: Low Strength (Merge Class)"
-    if students > capacity: return "🚨 Alert: Over-loaded (Split Section)"
-    return "✅ Optimized: Efficient Capacity"
-
-def get_teacher_efficiency(val, unit):
-    # Convert to monthly periods
-    if unit == "Daily": m_p = val * 26
-    elif unit == "Weekly": m_p = val * 4
-    else: m_p = val
+# --- 2. STAFF CAPACITY & EFFICIENCY LOGIC ---
+def analyze_staff_load(row, unit):
+    assigned = row['Assigned Periods']
+    capacity = row['Teacher Capacity']
+    salary = row['Salary']
     
-    if m_p < 40: return m_p, "🛑 Under-utilized", "Red"
-    if m_p > 120: return m_p, "🚨 Over-loaded", "Red"
-    return m_p, "✅ Efficient", "Green"
+    # Monthly Calculation
+    if unit == "Daily": m_p = assigned * 26
+    elif unit == "Weekly": m_p = assigned * 4
+    else: m_p = assigned
+    
+    cost_per_p = salary / m_p if m_p > 0 else 0
+    diff = assigned - capacity
+    
+    if assigned < capacity:
+        status = f"🛑 Under-filled (Gap: {abs(diff)} p)"
+        color = "red"
+        advice = "Increase load to optimize salary."
+    elif assigned == capacity:
+        status = "✅ Efficient (Ideal Fill)"
+        color = "green"
+        advice = "Perfect Resource Usage."
+    else:
+        status = f"🚨 Overloaded (Extra: {diff} p)"
+        color = "orange"
+        advice = "Quality Risk! Reduce burden."
+        
+    return pd.Series([m_p, round(cost_per_p, 2), status, advice])
 
-# --- 3. PDF GENERATION ---
-def generate_master_report(school, p_score, s_score, c_score, final_score, total_exp):
+# --- 3. CLASS & PROFIT LOGIC ---
+def get_class_advice(students, cap):
+    if students < 15: return "⚠️ Merge Class"
+    if students > cap: return "🚨 Split Section"
+    return "✅ Optimized"
+
+# --- 4. PDF GENERATION ---
+def generate_pdf(school, final_score, total_exp):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", 'B', 20)
-    pdf.cell(200, 15, txt="Strategic Institutional Audit", ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Institution: {school} | Date: {datetime.date.today()}", ln=True, align='C')
-    pdf.ln(10)
-    
-    # Financial Summary Table
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(100, 10, "Section/Metric", 1)
-    pdf.cell(90, 10, "Status/Level", 1, ln=True)
-    pdf.set_font("Arial", size=12)
-    pdf.cell(100, 10, "Primary Section Profit Level", 1)
-    pdf.cell(90, 10, f"{p_score}/200", 1, ln=True)
-    pdf.cell(100, 10, "Secondary Section Profit Level", 1)
-    pdf.cell(90, 10, f"{s_score}/200", 1, ln=True)
-    pdf.cell(100, 10, "Total Monthly Operational Costs", 1)
-    pdf.cell(90, 10, f"{total_exp} PKR", 1, ln=True)
-    pdf.ln(10)
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"FINAL SCORE: {final_score} / 200", ln=True, align='C')
+    pdf.cell(200, 10, txt="Institutional Resource Audit", ln=True, align='C')
+    pdf.ln(10)
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Institution: {school} | Score: {final_score}/200", ln=True)
+    pdf.cell(200, 10, txt=f"Total Operational Expenses: {total_exp} PKR", ln=True)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 4. UI SETUP ---
-st.set_page_config(page_title="Strategic School Optimizer", layout="wide")
+# --- 5. UI SETUP ---
+st.set_page_config(page_title="Institutional Master Optimizer", layout="wide")
 
 if 'auth' not in st.session_state: st.session_state.auth = False
 
 if not st.session_state.auth:
-    st.title("🔐 System Activation")
-    inst_name = st.text_input("Institution Name", placeholder="Enter School Name")
-    key = st.text_input("License Key", type="password", placeholder="Enter Secret Key")
+    st.title("🔐 Secure System Activation")
+    key = st.text_input("License Key", type="password")
     if st.button("Activate Dashboard"):
         if check_auth(key):
             st.session_state.auth = True
-            st.session_state.school = inst_name
+            st.session_state.school = "My Institution"
             st.rerun()
-        else: st.error("Invalid Key. Access Denied.")
+        else: st.error("Access Denied.")
 
 else:
-    st.sidebar.title(f"🏫 {st.session_state.school}")
-    if st.sidebar.button("System Logout"):
-        st.session_state.auth = False
-        st.rerun()
+    st.title(f"🏫 {st.session_state.school} | Master Dashboard")
+    tabs = st.tabs(["👨‍🏫 Staff Capacity Audit", "👶 Primary", "🏫 Secondary", "🎓 College", "🏗️ Admin Expenses", "📊 Final Audit"])
 
-    # --- TABS FOR COMPLETE MANAGEMENT ---
-    tabs = st.tabs(["👶 Primary", "🏫 Secondary", "🎓 College", "👨‍🏫 Staff Load", "🏗️ Admin Expenses", "📊 Final Audit"])
+    # --- STAFF CAPACITY TAB ---
+    with tabs[0]:
+        st.subheader("Teacher Workload & ROI Gauge")
+        unit = st.radio("Period Unit:", ["Daily", "Weekly", "Monthly"], horizontal=True)
+        staff_df = pd.DataFrame([{"Teacher Name": "Teacher A", "Salary": 40000, "Teacher Capacity": 8, "Assigned Periods": 6}])
+        edited_staff = st.data_editor(staff_df, num_rows="dynamic", key="staff_gauge", use_container_width=True)
+        
+        if not edited_staff.empty:
+            results = edited_staff.apply(lambda row: analyze_staff_load(row, unit), axis=1)
+            edited_staff[['Monthly Periods', 'Cost/Period', 'Loading Status', 'Strategic Advice']] = results
+            st.dataframe(edited_staff, use_container_width=True)
 
-    def process_section(name, key):
-        st.subheader(f"{name} Section - Revenue & Class Management")
-        with st.expander(f"Add/Edit {name} Classes", expanded=True):
-            df = pd.DataFrame([{"Class": "Entry 1", "Students": 25, "Fee": 5000, "Room Capacity": 40}])
-            edited = st.data_editor(df, num_rows="dynamic", key=f"edit_{key}", use_container_width=True)
-            
-            total_rev, total_std = 0, 0
-            if not edited.empty:
-                edited['Class Revenue'] = edited['Students'] * edited['Fee']
-                total_rev = edited['Class Revenue'].sum()
-                total_std = edited['Students'].sum()
-                edited['Advice'] = edited.apply(lambda x: get_class_advice(x['Students'], x['Room Capacity']), axis=1)
-                st.write("#### 💡 Capacity Advisor:")
-                st.table(edited[['Class', 'Students', 'Room Capacity', 'Advice']])
+    # --- SECTION LOGIC (REUSABLE) ---
+    def handle_sec(name, key):
+        st.subheader(f"{name} Class-wise Data")
+        df = pd.DataFrame([{"Class": "Class 1", "Students": 20, "Fee": 4000, "Room Cap": 40}])
+        edited = st.data_editor(df, num_rows="dynamic", key=f"edit_{key}", use_container_width=True)
+        total_rev = 0
+        if not edited.empty:
+            edited['Revenue'] = edited['Students'] * edited['Fee']
+            total_rev = edited['Revenue'].sum()
+            edited['Advice'] = edited.apply(lambda x: get_class_advice(x['Students'], x['Room Cap']), axis=1)
+            st.table(edited[['Class', 'Students', 'Advice']])
+        sal = st.number_input(f"Total Staff Salaries ({name})", value=50000, key=f"sal_{key}")
+        return total_rev, total_rev - sal
 
-        salaries = st.number_input(f"Total Staff Salaries ({name})", value=100000, key=f"sal_{key}")
-        net = total_rev - salaries
-        return total_rev, net
+    with tabs[1]: p_rev, p_net = handle_sec("Primary", "pri")
+    with tabs[2]: s_rev, s_net = handle_sec("Secondary", "sec")
+    with tabs[3]: c_rev, c_net = handle_sec("College", "col")
 
-    # Primary, Secondary, College Logic
-    with tabs[0]: p_rev, p_net = process_section("Primary", "pri")
-    with tabs[1]: s_rev, s_net = process_section("Secondary", "sec")
-    with tabs[2]: c_rev, c_net = process_section("College", "col")
-
-    # Staff Loading Analysis
-    with tabs[3]:
-        st.subheader("Teacher Efficiency & Load Tracker")
-        t_col1, t_col2, t_col3 = st.columns(3)
-        with t_col1: unit = st.selectbox("Select Unit", ["Daily", "Weekly", "Monthly"])
-        with t_col2: val = st.number_input(f"No. of Periods", value=6)
-        with t_col3:
-            m_load, status, color = get_teacher_efficiency(val, unit)
-            st.metric("Monthly Period Load", m_load)
-            if color == "Red": st.error(status)
-            else: st.success(status)
-
-    # General Expenses
+    # --- ADMIN EXPENSES ---
     with tabs[4]:
         st.subheader("General Operational Expenses")
-        e_c1, e_c2 = st.columns(2)
-        with e_c1:
-            rent = st.number_input("Building Rent", value=40000)
-            bills = st.number_input("Electricity & Utilities", value=20000)
-        with e_c2:
-            labor = st.number_input("Labor & Security", value=25000)
-            misc = st.number_input("Other (Admin)", value=5000)
-        total_gen_exp = rent + bills + labor + misc
-        st.warning(f"Total Operational Cost: {total_gen_exp} PKR")
+        rent = st.number_input("Building Rent", value=40000)
+        util = st.number_input("Electricity & Bills", value=20000)
+        labor = st.number_input("Labor & Security", value=20000)
+        total_gen_exp = rent + util + labor
+        st.warning(f"Total Fixed Expenses: {total_gen_exp} PKR")
 
-    # Final Audit & PDF
+    # --- FINAL AUDIT ---
     with tabs[5]:
-        st.subheader("Institutional Efficiency Audit")
+        st.subheader("Final Strategic Audit")
         total_rev = p_rev + s_rev + c_rev
         total_net = p_net + s_net + c_net - total_gen_exp
         
-        # Scoring logic (1-200) based on margins [cite: 2025-12-29]
-        def score_me(net, rev): return max(1, min(200, int((net/rev)*400))) if rev > 0 else 1
+        # Profit Level Logic (1-200) [cite: 2025-12-29]
+        score = max(1, min(200, int((total_net/total_rev)*400))) if total_rev > 0 else 1
         
-        p_score = score_me(p_net, p_rev)
-        s_score = score_me(s_net, s_rev)
-        c_score = score_me(c_net, c_rev)
-        final_score = score_me(total_net, total_rev)
+        st.header(f"Institutional Profit Level: {score} / 200")
+        st.progress(score / 200)
+        
+        if st.button("Generate Audit PDF"):
+            pdf_bytes = generate_pdf(st.session_state.school, score, total_gen_exp)
+            st.download_button("📥 Download PDF Report", data=pdf_bytes, file_name="Full_Audit.pdf")
 
-        st.header(f"Total Strategic Profit Level: {final_score} / 200")
-        st.progress(final_score / 200)
-
-        if st.button("Finalize and Download Audit PDF"):
-            pdf_bytes = generate_master_report(st.session_state.school, p_score, s_score, c_score, final_score, total_gen_exp)
-            st.download_button("📥 Download Official Report", data=pdf_bytes, file_name="Audit_Report.pdf")
+    if st.sidebar.button("Logout"):
+        st.session_state.auth = False
+        st.rerun()
