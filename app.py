@@ -4,141 +4,154 @@ import datetime
 from fpdf import FPDF
 
 # --- 1. SECURE LICENSE SYSTEM ---
-# In a real app, this would be in a hidden secrets file
 VALID_KEY = "PRO-MAX-200" 
-
 def check_auth(user_key):
     return user_key == VALID_KEY
 
-# --- 2. OPTIMIZATION LOGICS ---
-def get_monthly_periods(value, unit):
-    if unit == "Daily": return value * 26
-    if unit == "Weekly": return value * 4
-    return value
+# --- 2. ADVANCED PROFIT LOGIC ---
+def calculate_section_revenue(students, fee):
+    return students * fee
 
-def get_teacher_status(m_periods):
-    if m_periods < 40: return "🛑 Critical: Under-utilized (Resource Loss)"
-    if m_periods > 120: return "🚨 Overload: High Teacher Burnout Risk"
-    return "✅ Efficient: Perfect Resource Utilization"
+def get_class_advice(students, capacity):
+    if students < 15: return "⚠️ Low Enrollment: Merge Class"
+    if students > capacity: return "🚨 Over-loaded: Split Section"
+    return "✅ Optimized"
 
-def get_class_advice(students, max_cap):
-    if students < 15: return "⚠️ Low Enrollment: Action Required (Merge Class)"
-    elif students > max_cap: return f"🚨 Over-loaded: Capacity Exceeded (Split Section)"
-    elif students >= (max_cap - 5): return "✅ Optimized: Near Full Capacity"
-    return "✅ Stable"
-
-# --- 3. PDF REPORT LOGIC ---
-def generate_pdf_report(school_name, p_lvl, s_lvl, c_lvl, overall):
+# --- 3. PDF REPORT GENERATION ---
+def generate_audit_report(school, p_score, s_score, c_score, final_score, expenses_total):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="School Resource Optimization Audit Report", ln=True, align='C')
-    pdf.ln(10)
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Institution Name: {school_name}", ln=True)
-    pdf.cell(200, 10, txt=f"Audit Date: {datetime.date.today()}", ln=True)
+    pdf.cell(200, 10, txt="Institutional Audit & Optimization Report", ln=True, align='C')
     pdf.ln(10)
     
-    # Section Table
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Institution: {school}", ln=True)
+    pdf.cell(200, 10, txt=f"Date: {datetime.date.today()}", ln=True)
+    pdf.ln(5)
+    
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(100, 10, "Academic Department", 1)
-    pdf.cell(90, 10, "Profit Level (1-200)", 1, ln=True)
+    pdf.cell(100, 10, "Component", 1)
+    pdf.cell(90, 10, "Value / Score", 1, ln=True)
     
     pdf.set_font("Arial", size=12)
-    sections = {"Primary Department": p_lvl, "Secondary Department": s_lvl, "College Department": c_lvl}
-    for sec, val in sections.items():
-        pdf.cell(100, 10, sec, 1)
-        pdf.cell(90, 10, str(val), 1, ln=True)
+    pdf.cell(100, 10, "Primary Profit Level", 1)
+    pdf.cell(90, 10, str(p_score), 1, ln=True)
+    pdf.cell(100, 10, "Secondary Profit Level", 1)
+    pdf.cell(90, 10, str(s_score), 1, ln=True)
+    pdf.cell(100, 10, "College Profit Level", 1)
+    pdf.cell(90, 10, str(c_score), 1, ln=True)
+    pdf.cell(100, 10, "Total Monthly Operational Costs", 1)
+    pdf.cell(90, 10, f"{expenses_total} PKR", 1, ln=True)
     
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 14)
-    pdf.cell(200, 10, txt=f"INSTITUTIONAL EFFICIENCY SCORE: {overall} / 200", ln=True)
+    pdf.cell(200, 10, txt=f"FINAL STRATEGIC PROFIT LEVEL: {final_score} / 200", ln=True)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 4. STREAMLIT UI ---
-st.set_page_config(page_title="Institutional Optimizer Pro", layout="wide")
+# --- 4. APP INTERFACE ---
+st.set_page_config(page_title="Smart Institutional Optimizer", layout="wide")
 
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+if 'auth' not in st.session_state:
+    st.session_state.auth = False
 
-# LOGIN SCREEN (SECURE)
-if not st.session_state.authenticated:
-    st.title("🔐 Secure System Activation")
-    st.write("Please enter your institutional credentials to access the dashboard.")
-    
-    inst_name = st.text_input("Institution Name", placeholder="e.g. City Excellence School")
-    # type="password" hides the characters while typing
-    input_key = st.text_input("License Key", type="password", placeholder="Enter your secret key here")
-    
+if not st.session_state.auth:
+    st.title("🔐 Secure Activation")
+    inst_name = st.text_input("Institution Name")
+    key = st.text_input("License Key", type="password")
     if st.button("Activate Dashboard"):
-        if check_auth(input_key):
-            st.session_state.authenticated = True
-            st.session_state.school_name = inst_name
-            st.success("Access Granted!")
+        if check_auth(key):
+            st.session_state.auth = True
+            st.session_state.school = inst_name
             st.rerun()
-        else:
-            st.error("Invalid License Key. Access Denied.")
+        else: st.error("Access Denied.")
 
-# MAIN PROTECTED DASHBOARD
 else:
-    st.sidebar.title("Navigation")
+    st.title(f"🏫 {st.session_state.school} | Master Control Dashboard")
+    
+    # Tabs for Organization
+    tab1, tab2, tab3, tab4 = st.tabs(["💰 Income & Sections", "🏢 General Expenses", "🏫 Classroom Manager", "📋 Final Report"])
+
+    with tab1:
+        st.subheader("Section-wise Revenue & Teaching Costs")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.write("### Primary")
+            p_s = st.number_input("Students (Pri)", value=100)
+            p_f = st.number_input("Avg Fee (Pri)", value=4000)
+            p_sal = st.number_input("Salaries (Pri)", value=150000)
+            p_rev = calculate_section_revenue(p_s, p_f)
+            p_net = p_rev - p_sal
+            
+        with col2:
+            st.write("### Secondary")
+            s_s = st.number_input("Students (Sec)", value=80)
+            s_f = st.number_input("Avg Fee (Sec)", value=6000)
+            s_sal = st.number_input("Salaries (Sec)", value=200000)
+            s_rev = calculate_section_revenue(s_s, s_f)
+            s_net = s_rev - s_sal
+
+        with col3:
+            st.write("### College")
+            c_active = st.checkbox("Include College", value=False)
+            if c_active:
+                c_s = st.number_input("Students (Col)", value=40)
+                c_f = st.number_input("Avg Fee (Col)", value=10000)
+                c_sal = st.number_input("Salaries (Col)", value=150000)
+                c_rev = calculate_section_revenue(c_s, c_f)
+                c_net = c_rev - c_sal
+            else:
+                c_rev, c_net = 0, 0
+
+    with tab2:
+        st.subheader("General Operational Expenses")
+        st.write("Enter costs that apply to the whole building/institution.")
+        exp_col1, exp_col2 = st.columns(2)
+        with exp_col1:
+            rent = st.number_input("Building Rent / Maintenance", value=50000)
+            electricity = st.number_input("Electricity & Utilities", value=30000)
+        with exp_col2:
+            labor = st.number_input("Non-Teaching Staff / Labor", value=40000)
+            misc = st.number_input("Misc / Admin Costs", value=10000)
+        
+        total_gen_expenses = rent + electricity + labor + misc
+        st.warning(f"Total General Expenses: {total_gen_expenses} PKR")
+
+    with tab3:
+        st.subheader("Classroom Capacity Advisor")
+        class_data = pd.DataFrame([{"Class": "6th-A", "Students": 12, "Capacity": 40}])
+        edited_class = st.data_editor(class_data, num_rows="dynamic", key="class_edit", use_container_width=True)
+        if not edited_class.empty:
+            edited_class['Advice'] = edited_class.apply(lambda x: get_class_advice(x['Students'], x['Capacity']), axis=1)
+            st.dataframe(edited_class, use_container_width=True)
+
+    with tab4:
+        st.subheader("Final Strategic Analysis")
+        
+        # Calculating Final Profit Score (1-200)
+        total_net_profit = p_net + s_net + c_net - total_gen_expenses
+        total_revenue = p_rev + s_rev + c_rev
+        
+        if total_revenue > 0:
+            margin = total_net_profit / total_revenue
+            # Scaling logic to fit 1-200 [cite: 2025-12-29]
+            final_score = max(1, min(200, int(margin * 400))) 
+        else:
+            final_score = 1
+
+        # Sectional Scores for Report
+        p_score = max(1, min(200, int((p_net/p_rev)*400))) if p_rev > 0 else 1
+        s_score = max(1, min(200, int((s_net/s_rev)*400))) if s_rev > 0 else 1
+        c_score = max(1, min(200, int((c_net/c_rev)*400))) if c_rev > 0 else 1
+
+        st.header(f"Final Profit Level: {final_score} / 200")
+        st.progress(final_score / 200)
+        
+        if st.button("Generate & Download PDF Audit Report"):
+            report_bytes = generate_audit_report(st.session_state.school, p_score, s_score, c_score, final_score, total_gen_expenses)
+            st.download_button(label="📥 Download Audit Report", data=report_bytes, file_name="Institutional_Audit.pdf", mime="application/pdf")
+
     if st.sidebar.button("Logout"):
-        st.session_state.authenticated = False
+        st.session_state.auth = False
         st.rerun()
-
-    st.title(f"🏫 {st.session_state.school_name} | Profit Optimization")
-    
-    # PROFIT LEVELS (1-200)
-    st.markdown("---")
-    st.subheader("📈 Sectional Performance (Profit Scale 1-200)")
-    c1, c2, c3 = st.columns(3)
-    with c1: p_val = st.number_input("Primary Profit", 1, 200, 85)
-    with c2: s_val = st.number_input("Secondary Profit", 1, 200, 110)
-    with c3: c_val = st.number_input("College Profit", 1, 200, 150)
-    
-    total_avg = int((p_val + s_val + c_val) / 3)
-    st.markdown(f"### Overall Institutional Profit Level: **{total_avg} / 200**")
-    st.progress(total_avg / 200)
-
-    # CLASSROOM ADVISOR
-    st.markdown("---")
-    st.subheader("🏫 Smart Classroom Merge & Split Advisor")
-    
-    # Professional Data Table
-    raw_data = [
-        {"Class": "Grade 6", "Students": 12, "Room Capacity": 40},
-        {"Class": "Grade 9", "Students": 55, "Room Capacity": 50}
-    ]
-    class_df = pd.DataFrame(raw_data)
-    
-    st.write("Edit the table below to analyze classroom efficiency:")
-    edited_df = st.data_editor(class_df, num_rows="dynamic", use_container_width=True)
-    
-    if not edited_df.empty:
-        edited_df['System Advice'] = edited_df.apply(
-            lambda x: get_class_advice(x['Students'], x['Room Capacity']), axis=1
-        )
-        st.dataframe(edited_df, use_container_width=True)
-
-    # TEACHER WORKLOAD
-    st.markdown("---")
-    st.subheader("👨‍🏫 Teacher Load & Efficiency Analyzer")
-    t1, t2, t3 = st.columns(3)
-    with t1: unit = st.selectbox("Select Calculation Unit", ["Daily", "Weekly", "Monthly"])
-    with t2: period_input = st.number_input(f"Enter {unit} Periods", min_value=1, value=5)
-    with t3:
-        m_total = get_monthly_periods(period_input, unit)
-        advice = get_teacher_status(m_total)
-        st.write(f"Total Monthly Periods: **{m_total}**")
-        st.info(advice)
-
-    # REPORTING
-    st.markdown("---")
-    if st.button("Finalize and Generate PDF Audit Report"):
-        report = generate_pdf_report(st.session_state.school_name, p_val, s_val, c_val, total_avg)
-        st.download_button(
-            label="📥 Download Audit Report",
-            data=report,
-            file_name=f"Optimization_Audit_{st.session_state.school_name}.pdf",
-            mime="application/pdf"
-        )
