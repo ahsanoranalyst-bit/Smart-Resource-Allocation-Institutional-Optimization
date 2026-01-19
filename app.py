@@ -3,136 +3,142 @@ import pandas as pd
 import datetime
 from fpdf import FPDF
 
-# --- 1. LICENSE SYSTEM ---
-MASTER_LICENSE_KEY = "PRO-MAX-200"
+# --- 1. SECURE LICENSE SYSTEM ---
+# In a real app, this would be in a hidden secrets file
+VALID_KEY = "PRO-MAX-200" 
 
-def validate_license(key):
-    return key == MASTER_LICENSE_KEY
+def check_auth(user_key):
+    return user_key == VALID_KEY
 
-# --- 2. OPTIMIZATION LOGIC ---
+# --- 2. OPTIMIZATION LOGICS ---
 def get_monthly_periods(value, unit):
     if unit == "Daily": return value * 26
     if unit == "Weekly": return value * 4
     return value
 
 def get_teacher_status(m_periods):
-    if m_periods < 40: return "🛑 Critical: Under-utilized (Loss)"
-    if m_periods > 120: return "🚨 Overload: Staff Burnout Risk"
-    return "✅ Efficient: Perfect Resource Use"
+    if m_periods < 40: return "🛑 Critical: Under-utilized (Resource Loss)"
+    if m_periods > 120: return "🚨 Overload: High Teacher Burnout Risk"
+    return "✅ Efficient: Perfect Resource Utilization"
 
 def get_class_advice(students, max_cap):
-    if students < 15: return "⚠️ Low Enrollment: Merge this Class"
-    elif students > max_cap: return f"🚨 Over-crowded: Split into New Section"
+    if students < 15: return "⚠️ Low Enrollment: Action Required (Merge Class)"
+    elif students > max_cap: return f"🚨 Over-loaded: Capacity Exceeded (Split Section)"
     elif students >= (max_cap - 5): return "✅ Optimized: Near Full Capacity"
     return "✅ Stable"
 
-# --- 3. PDF REPORT GENERATION ---
-def generate_report(school_name, p_lvl, s_lvl, c_lvl, overall):
+# --- 3. PDF REPORT LOGIC ---
+def generate_pdf_report(school_name, p_lvl, s_lvl, c_lvl, overall):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Institutional Resource Optimization Report", ln=True, align='C')
+    pdf.cell(200, 10, txt="School Resource Optimization Audit Report", ln=True, align='C')
     pdf.ln(10)
     pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Institution: {school_name}", ln=True)
-    pdf.cell(200, 10, txt=f"Analysis Date: {datetime.date.today()}", ln=True)
+    pdf.cell(200, 10, txt=f"Institution Name: {school_name}", ln=True)
+    pdf.cell(200, 10, txt=f"Audit Date: {datetime.date.today()}", ln=True)
     pdf.ln(10)
     
-    # Section Profit Table
+    # Section Table
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(100, 10, "Academic Section", 1)
+    pdf.cell(100, 10, "Academic Department", 1)
     pdf.cell(90, 10, "Profit Level (1-200)", 1, ln=True)
+    
     pdf.set_font("Arial", size=12)
-    sections = {"Primary Section": p_lvl, "Secondary Section": s_lvl, "College Section": c_lvl}
+    sections = {"Primary Department": p_lvl, "Secondary Department": s_lvl, "College Department": c_lvl}
     for sec, val in sections.items():
         pdf.cell(100, 10, sec, 1)
         pdf.cell(90, 10, str(val), 1, ln=True)
     
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 14)
-    pdf.cell(200, 10, txt=f"FINAL STRATEGIC PROFIT SCORE: {overall} / 200", ln=True)
+    pdf.cell(200, 10, txt=f"INSTITUTIONAL EFFICIENCY SCORE: {overall} / 200", ln=True)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 4. STREAMLIT INTERFACE ---
-st.set_page_config(page_title="Smart School Optimizer Pro", layout="wide")
+# --- 4. STREAMLIT UI ---
+st.set_page_config(page_title="Institutional Optimizer Pro", layout="wide")
 
-if 'auth' not in st.session_state:
-    st.session_state.auth = False
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
 
-# LOGIN SCREEN
-if not st.session_state.auth:
-    st.title("🔐 System Activation")
-    st.subheader("Institutional Optimization & Profit Management System")
-    school_input = st.text_input("Institution Name")
-    key_input = st.text_input("Enter License Key (PRO-MAX-200)", type="password")
+# LOGIN SCREEN (SECURE)
+if not st.session_state.authenticated:
+    st.title("🔐 Secure System Activation")
+    st.write("Please enter your institutional credentials to access the dashboard.")
+    
+    inst_name = st.text_input("Institution Name", placeholder="e.g. City Excellence School")
+    # type="password" hides the characters while typing
+    input_key = st.text_input("License Key", type="password", placeholder="Enter your secret key here")
+    
     if st.button("Activate Dashboard"):
-        if validate_license(key_input):
-            st.session_state.auth = True
-            st.session_state.school = school_input
+        if check_auth(input_key):
+            st.session_state.authenticated = True
+            st.session_state.school_name = inst_name
+            st.success("Access Granted!")
             st.rerun()
         else:
             st.error("Invalid License Key. Access Denied.")
 
-# MAIN DASHBOARD
+# MAIN PROTECTED DASHBOARD
 else:
-    st.title(f"🏫 {st.session_state.school} | Strategic Dashboard")
-    
-    # 1. SECTIONAL PROFIT LEVELS (1-200)
-    st.markdown("---")
-    st.subheader("📊 Section-wise Profit Performance")
-    c1, c2, c3 = st.columns(3)
-    with c1: p_val = st.number_input("Primary Profit Level", 1, 200, 85)
-    with c2: s_val = st.number_input("Secondary Profit Level", 1, 200, 110)
-    with c3: c_val = st.number_input("College Profit Level", 1, 200, 150)
-    
-    overall_score = int((p_val + s_val + c_val) / 3)
-    st.markdown(f"### Total Institutional Profit Level: **{overall_score} / 200**")
-    st.progress(overall_score/200)
+    st.sidebar.title("Navigation")
+    if st.sidebar.button("Logout"):
+        st.session_state.authenticated = False
+        st.rerun()
 
-    # 2. CLASSROOM OPTIMIZATION (ADVISOR)
+    st.title(f"🏫 {st.session_state.school_name} | Profit Optimization")
+    
+    # PROFIT LEVELS (1-200)
     st.markdown("---")
-    st.subheader("🏫 Classroom Capacity & Merge Advisor")
-    st.write("Input current student count and room capacity to see system recommendations.")
+    st.subheader("📈 Sectional Performance (Profit Scale 1-200)")
+    c1, c2, c3 = st.columns(3)
+    with c1: p_val = st.number_input("Primary Profit", 1, 200, 85)
+    with c2: s_val = st.number_input("Secondary Profit", 1, 200, 110)
+    with c3: c_val = st.number_input("College Profit", 1, 200, 150)
     
-    class_df = pd.DataFrame([
-        {"Class Name": "Grade 5-A", "Students": 12, "Max Capacity": 40},
-        {"Class Name": "Grade 10-B", "Students": 45, "Max Capacity": 40}
-    ])
+    total_avg = int((p_val + s_val + c_val) / 3)
+    st.markdown(f"### Overall Institutional Profit Level: **{total_avg} / 200**")
+    st.progress(total_avg / 200)
+
+    # CLASSROOM ADVISOR
+    st.markdown("---")
+    st.subheader("🏫 Smart Classroom Merge & Split Advisor")
     
-    # Editable Table
+    # Professional Data Table
+    raw_data = [
+        {"Class": "Grade 6", "Students": 12, "Room Capacity": 40},
+        {"Class": "Grade 9", "Students": 55, "Room Capacity": 50}
+    ]
+    class_df = pd.DataFrame(raw_data)
+    
+    st.write("Edit the table below to analyze classroom efficiency:")
     edited_df = st.data_editor(class_df, num_rows="dynamic", use_container_width=True)
     
     if not edited_df.empty:
         edited_df['System Advice'] = edited_df.apply(
-            lambda x: get_class_advice(x['Students'], x['Max Capacity']), axis=1
+            lambda x: get_class_advice(x['Students'], x['Room Capacity']), axis=1
         )
-        st.write("### 📢 Live Optimization Advice:")
-        st.table(edited_df[['Class Name', 'Students', 'Max Capacity', 'System Advice']])
+        st.dataframe(edited_df, use_container_width=True)
 
-    # 3. TEACHER WORKLOAD ANALYZER (FLEXIBLE)
+    # TEACHER WORKLOAD
     st.markdown("---")
-    st.subheader("👨‍🏫 Teacher Efficiency & Workload Analyzer")
-    t1, t2, t3, t4 = st.columns(4)
-    with t1: teacher_name = st.text_input("Staff Name", "Teacher 1")
-    with t2: unit = st.selectbox("Input Unit", ["Daily", "Weekly", "Monthly"])
-    with t3: val = st.number_input(f"Periods ({unit})", value=4)
-    with t4:
-        m_periods = get_monthly_periods(val, unit)
-        t_advice = get_teacher_status(m_periods)
-        st.write(f"Calculated Monthly Load: **{m_periods} Periods**")
-        st.info(t_advice)
+    st.subheader("👨‍🏫 Teacher Load & Efficiency Analyzer")
+    t1, t2, t3 = st.columns(3)
+    with t1: unit = st.selectbox("Select Calculation Unit", ["Daily", "Weekly", "Monthly"])
+    with t2: period_input = st.number_input(f"Enter {unit} Periods", min_value=1, value=5)
+    with t3:
+        m_total = get_monthly_periods(period_input, unit)
+        advice = get_teacher_status(m_total)
+        st.write(f"Total Monthly Periods: **{m_total}**")
+        st.info(advice)
 
-    # 4. REPORT EXPORT
+    # REPORTING
     st.markdown("---")
-    if st.button("Generate Professional Audit Report"):
-        report_bytes = generate_report(st.session_state.school, p_val, s_val, c_val, overall_score)
+    if st.button("Finalize and Generate PDF Audit Report"):
+        report = generate_pdf_report(st.session_state.school_name, p_val, s_val, c_val, total_avg)
         st.download_button(
-            label="📥 Download PDF Optimization Report",
-            data=report_bytes,
-            file_name=f"{st.session_state.school}_Audit_Report.pdf",
+            label="📥 Download Audit Report",
+            data=report,
+            file_name=f"Optimization_Audit_{st.session_state.school_name}.pdf",
             mime="application/pdf"
         )
-
-    if st.sidebar.button("Logout System"):
-        st.session_state.auth = False
-        st.rerun()
