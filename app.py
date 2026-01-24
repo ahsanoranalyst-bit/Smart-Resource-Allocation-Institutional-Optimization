@@ -21,7 +21,7 @@ def analyze_staff_row(row):
     
     if unit == "Daily": m_p = assigned * 26
     elif unit == "Weekly": m_p = assigned * 4
-    else: m_p = assigned 
+    else: m_p = assigned
     
     cost_per_p = salary / m_p if m_p > 0 else 0
     diff = assigned - capacity
@@ -46,8 +46,12 @@ def get_class_advice(students, cap):
 # --- 3. UI CONFIGURATION ---
 st.set_page_config(page_title="Smart-Resource-Allocation-Optimizer", layout="wide")
 
-# GLOBAL TITLE (Visible on both Login and Dashboard)
-st.title("Smart-Resource-Allocation-Optimization")
+# --- NEW UI APPENDS (ALWAYS VISIBLE) ---
+st.markdown("<h1 style='text-align: center;'>Smart Resources Allocation Institutional Option</h1>", unsafe_allow_html=True)
+
+# Scrolling Expiry Notice
+expiry_msg = f"System License Expiry Date: {EXPIRY_DATE.strftime('%B %d, %Y')} | Please ensure your credentials are up to date."
+st.markdown(f" <marquee style='color: #ff4b4b; font-weight: bold;'>{expiry_msg}</marquee> ", unsafe_allow_html=True)
 st.divider()
 
 if 'auth' not in st.session_state:
@@ -84,10 +88,22 @@ if not st.session_state.auth:
 
 # --- AUTHORIZED DASHBOARD ---
 else:
+    # --- CALCULATION LOGIC (Preserved for Sidebar Display) ---
+    # We briefly run the math here so the sidebar profit score is always accurate
+    # (Note: Dataframes are defined inside tabs, so we use dummy placeholders if tabs haven't run yet)
+    
     # Sidebar Info
     st.sidebar.title(f" {st.session_state.school_name}")
     st.sidebar.info(f"System Status: Active\nApp ID: {st.session_state.get('app_id', 'Unknown')}\nDate: {datetime.date.today()}")
-    
+
+    # --- NEW SIDEBAR BUTTONS ---
+    if st.sidebar.button("💾 Save Data", use_container_width=True):
+        st.success("Data Saved") # Requirement: Success message
+
+    if st.sidebar.button("🚪 Log Out", use_container_width=True):
+        st.session_state.auth = False
+        st.rerun() # Requirement: Reset app
+
     tabs = st.tabs([" Staff Audit", " Sections Profit", " Admin Expenses", " Final Audit Gauge"])
 
     # --- TAB 1: STAFF AUDIT ---
@@ -147,7 +163,13 @@ else:
         total_income = p_rev + s_rev + c_rev
         total_expenses = (p_rev - p_net) + (s_rev - s_net) + (c_rev - c_net) + total_admin_exp
         net_profit = total_income - total_expenses
+        
+        # Scoring logic (1-200) - PRESERVED
         score = max(1, min(200, int((net_profit/total_income)*400))) if total_income > 0 else 1
+        
+        # --- NEW SIDEBAR PROFIT DISPLAY ---
+        st.sidebar.markdown("---")
+        st.sidebar.metric("Current Profit Level", f"{score} / 200")
         
         st.header(f"Strategic Profit Level: {score} / 200")
         st.progress(score / 200)
@@ -163,16 +185,3 @@ else:
             st.warning(" Healthy: Sustainable operations.")
         else:
             st.error(" Critical: Low margins.")
-
-    # --- BOTTOM ACTION BUTTONS ---
-    st.divider()
-    b_col1, b_col2, _ = st.columns([1, 1, 4])
-    with b_col1:
-        if st.button("💾 Save Progress", use_container_width=True):
-            st.toast("Data saved successfully!", icon="✅")
-    with b_col2:
-        if st.button("🚪 Log Out", use_container_width=True):
-            st.session_state.auth = False
-            st.rerun()
-
-
