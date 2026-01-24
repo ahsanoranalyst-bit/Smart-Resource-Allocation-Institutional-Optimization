@@ -46,13 +46,14 @@ def get_class_advice(students, cap):
 # --- 3. UI CONFIGURATION ---
 st.set_page_config(page_title="Smart-Resource-Allocation-Optimizer", layout="wide")
 
-# --- NEW UI APPENDS (ALWAYS VISIBLE) ---
-st.markdown("<h1 style='text-align: center;'>Smart Resources Allocation Institutional Option</h1>", unsafe_allow_html=True)
+# --- GLOBAL SIDEBAR SETUP ---
+# Title moved to Sidebar
+st.sidebar.markdown("### Smart Resources Allocation Institutional Option")
 
-# Scrolling Expiry Notice
-expiry_msg = f"System License Expiry Date: {EXPIRY_DATE.strftime('%B %d, %Y')} | Please ensure your credentials are up to date."
-st.markdown(f" <marquee style='color: #ff4b4b; font-weight: bold;'>{expiry_msg}</marquee> ", unsafe_allow_html=True)
-st.divider()
+# Scrolling Expiry Notice in Sidebar
+expiry_msg = f"License Expiry: {EXPIRY_DATE.strftime('%d-%m-%Y')}"
+st.sidebar.markdown(f"<marquee style='color: #ff4b4b; font-size: 12px;'>{expiry_msg}</marquee>", unsafe_allow_html=True)
+st.sidebar.divider()
 
 if 'auth' not in st.session_state:
     st.session_state.auth = False
@@ -79,6 +80,7 @@ if not st.session_state.auth:
         elif check_auth(key_input) and school_input:
             st.session_state.auth = True
             st.session_state.school_name = school_input
+            # App Identifier for future Google Sheet connection
             st.session_state.app_id = f"App_{school_input.replace(' ', '_')}"
             st.rerun()
         elif not school_input:
@@ -88,22 +90,18 @@ if not st.session_state.auth:
 
 # --- AUTHORIZED DASHBOARD ---
 else:
-    # --- CALCULATION LOGIC (Preserved for Sidebar Display) ---
-    # We briefly run the math here so the sidebar profit score is always accurate
-    # (Note: Dataframes are defined inside tabs, so we use dummy placeholders if tabs haven't run yet)
-    
-    # Sidebar Info
-    st.sidebar.title(f" {st.session_state.school_name}")
-    st.sidebar.info(f"System Status: Active\nApp ID: {st.session_state.get('app_id', 'Unknown')}\nDate: {datetime.date.today()}")
+    # Sidebar Status Info
+    st.sidebar.info(f"Institution: {st.session_state.school_name}\nStatus: Active\nID: {st.session_state.get('app_id')}")
 
-    # --- NEW SIDEBAR BUTTONS ---
+    # Side-bar Action Buttons
     if st.sidebar.button("💾 Save Data", use_container_width=True):
-        st.success("Data Saved") # Requirement: Success message
+        st.sidebar.success("Data Saved")
 
     if st.sidebar.button("🚪 Log Out", use_container_width=True):
         st.session_state.auth = False
-        st.rerun() # Requirement: Reset app
+        st.rerun()
 
+    # Main Area Content
     tabs = st.tabs([" Staff Audit", " Sections Profit", " Admin Expenses", " Final Audit Gauge"])
 
     # --- TAB 1: STAFF AUDIT ---
@@ -167,9 +165,9 @@ else:
         # Scoring logic (1-200) - PRESERVED
         score = max(1, min(200, int((net_profit/total_income)*400))) if total_income > 0 else 1
         
-        # --- NEW SIDEBAR PROFIT DISPLAY ---
-        st.sidebar.markdown("---")
-        st.sidebar.metric("Current Profit Level", f"{score} / 200")
+        # Profit Level Displayed in Sidebar
+        st.sidebar.divider()
+        st.sidebar.metric("Profit Level", f"{score} / 200")
         
         st.header(f"Strategic Profit Level: {score} / 200")
         st.progress(score / 200)
