@@ -4,7 +4,7 @@ import datetime
 from fpdf import FPDF
 
 # --- 1. SECURE LICENSE SYSTEM ---
-VALID_KEY = "PRO-MAX-200" 
+VALID_KEY = "Ahsan123" 
 def check_auth(key):
     return key == VALID_KEY
 
@@ -43,7 +43,7 @@ def get_class_advice(students, cap):
     return "✅ Optimized Strength"
 
 # --- 3. UI CONFIGURATION ---
-st.set_page_config(page_title="Institutional Master Optimizer", layout="wide")
+st.set_page_config(page_title="Smart-Resource-Allocation-Institutional-Optimizer", layout="wide")
 
 if 'auth' not in st.session_state:
     st.session_state.auth = False
@@ -52,7 +52,7 @@ if 'school_name' not in st.session_state:
 
 # --- LOGIN SCREEN ---
 if not st.session_state.auth:
-    st.title("🔐 Strategic System Activation")
+    st.title("🔐 Smart-Resource-Allocation-Institutional-Optimization-Activation")
     st.markdown("Please enter your official details to access the dashboard.")
     
     col_l1, col_l2 = st.columns(2)
@@ -171,3 +171,4 @@ else:
     if st.sidebar.button("Logout System"):
         st.session_state.auth = False
         st.rerun()
+
