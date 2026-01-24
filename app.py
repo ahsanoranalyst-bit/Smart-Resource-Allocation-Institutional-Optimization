@@ -44,7 +44,7 @@ def get_class_advice(students, cap):
     return " Optimized Strength"
 
 # --- 3. UI CONFIGURATION ---
-st.set_page_config(page_title="Smart-Resource-Allocation-Institutional-Optimizer", layout="wide")
+st.set_page_config(page_title="Smart-Resource-Allocation-Optimizer", layout="wide")
 
 # GLOBAL TITLE (Visible on both Login and Dashboard)
 st.title("Smart-Resource-Allocation-Institutional-Optimization")
@@ -174,3 +174,4 @@ else:
         if st.button("🚪 Log Out", use_container_width=True):
             st.session_state.auth = False
             st.rerun()
+
