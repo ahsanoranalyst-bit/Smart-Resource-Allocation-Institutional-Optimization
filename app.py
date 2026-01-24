@@ -5,7 +5,7 @@ from fpdf import FPDF
 
 # --- 1. SECURE LICENSE SYSTEM ---
 VALID_KEY = "Ahsan123"
-EXPIRY_DATE = datetime.date(2026, 12, 31)
+EXPIRY_DATE = datetime.date(2030, 12, 31)
 
 def check_auth(key):
     is_key_valid = (key == VALID_KEY)
@@ -183,3 +183,4 @@ else:
             st.warning(" Healthy: Sustainable operations.")
         else:
             st.error(" Critical: Low margins.")
+
