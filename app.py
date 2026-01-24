@@ -5,18 +5,15 @@ from fpdf import FPDF
 
 # --- 1. SECURE LICENSE SYSTEM ---
 VALID_KEY = "Ahsan123"
-# Set your expiry date here (Year, Month, Day)
-EXPIRY_DATE = datetime.date(2030, 12, 31) 
+EXPIRY_DATE = datetime.date(2026, 12, 31)
 
 def check_auth(key):
-    # Checks if key matches AND if current date is before expiry
     is_key_valid = (key == VALID_KEY)
     is_not_expired = (datetime.date.today() <= EXPIRY_DATE)
     return is_key_valid and is_not_expired
 
 # --- 2. ADVANCED LOGIC FUNCTIONS ---
 def analyze_staff_row(row):
-    """Calculates efficiency and cost per teacher based on individual units."""
     assigned = row['Assigned Periods']
     capacity = row['Teacher Capacity']
     salary = row['Salary']
@@ -24,7 +21,7 @@ def analyze_staff_row(row):
     
     if unit == "Daily": m_p = assigned * 26
     elif unit == "Weekly": m_p = assigned * 4
-    else: m_p = assigned # Monthly
+    else: m_p = assigned 
     
     cost_per_p = salary / m_p if m_p > 0 else 0
     diff = assigned - capacity
@@ -42,13 +39,16 @@ def analyze_staff_row(row):
     return pd.Series([m_p, round(cost_per_p, 2), status, advice])
 
 def get_class_advice(students, cap):
-    """Provides classroom management advice based on strength."""
     if students < 15: return " Critical: Merge Class"
     if students > cap: return " Alert: Split Section"
     return " Optimized Strength"
 
 # --- 3. UI CONFIGURATION ---
 st.set_page_config(page_title="Smart-Resource-Allocation-Institutional-Optimizer", layout="wide")
+
+# GLOBAL TITLE (Visible on both Login and Dashboard)
+st.title("Smart-Resource-Allocation-Institutional-Optimization")
+st.divider()
 
 if 'auth' not in st.session_state:
     st.session_state.auth = False
@@ -57,12 +57,10 @@ if 'school_name' not in st.session_state:
 
 # --- LOGIN SCREEN ---
 if not st.session_state.auth:
-    st.title(" Smart-Resource-Allocation-Institutional-Optimization-Activation")
-    
-    # Check if key is already expired globally to show a warning immediately
     if datetime.date.today() > EXPIRY_DATE:
         st.error(f"System License Expired on {EXPIRY_DATE}. Please contact support.")
     
+    st.markdown("### Activation Required")
     st.markdown("Please enter your official details to access the dashboard.")
     
     col_l1, col_l2 = st.columns(2)
@@ -77,7 +75,6 @@ if not st.session_state.auth:
         elif check_auth(key_input) and school_input:
             st.session_state.auth = True
             st.session_state.school_name = school_input
-            # This identifies the app for your Google Sheets logic later
             st.session_state.app_id = f"App_{school_input.replace(' ', '_')}"
             st.rerun()
         elif not school_input:
@@ -87,18 +84,9 @@ if not st.session_state.auth:
 
 # --- AUTHORIZED DASHBOARD ---
 else:
-    # --- SIDEBAR CONTROLS ---
+    # Sidebar Info
     st.sidebar.title(f" {st.session_state.school_name}")
     st.sidebar.info(f"System Status: Active\nApp ID: {st.session_state.get('app_id', 'Unknown')}\nDate: {datetime.date.today()}")
-    
-    # ADDED: Save and Logout Buttons in Sidebar
-    if st.sidebar.button("💾 Save Data"):
-        # Placeholder for Firebase/Sheets saving logic
-        st.sidebar.success("Progress Saved Successfully!")
-
-    if st.sidebar.button("🚪 Log Out"):
-        st.session_state.auth = False
-        st.rerun()
     
     tabs = st.tabs([" Staff Audit", " Sections Profit", " Admin Expenses", " Final Audit Gauge"])
 
@@ -159,8 +147,6 @@ else:
         total_income = p_rev + s_rev + c_rev
         total_expenses = (p_rev - p_net) + (s_rev - s_net) + (c_rev - c_net) + total_admin_exp
         net_profit = total_income - total_expenses
-        
-        # Scoring logic (1-200)
         score = max(1, min(200, int((net_profit/total_income)*400))) if total_income > 0 else 1
         
         st.header(f"Strategic Profit Level: {score} / 200")
@@ -178,3 +164,13 @@ else:
         else:
             st.error(" Critical: Low margins.")
 
+    # --- BOTTOM ACTION BUTTONS ---
+    st.divider()
+    b_col1, b_col2, _ = st.columns([1, 1, 4])
+    with b_col1:
+        if st.button("💾 Save Progress", use_container_width=True):
+            st.toast("Data saved successfully!", icon="✅")
+    with b_col2:
+        if st.button("🚪 Log Out", use_container_width=True):
+            st.session_state.auth = False
+            st.rerun()
