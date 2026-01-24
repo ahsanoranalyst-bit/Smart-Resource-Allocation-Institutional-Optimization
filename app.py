@@ -6,7 +6,7 @@ from fpdf import FPDF
 # --- 1. SECURE LICENSE SYSTEM ---
 VALID_KEY = "Ahsan123"
 # Set your expiry date here (Year, Month, Day)
-EXPIRY_DATE = datetime.date(2026, 12, 31) 
+EXPIRY_DATE = datetime.date(2030, 12, 31) 
 
 def check_auth(key):
     # Checks if key matches AND if current date is before expiry
@@ -177,3 +177,4 @@ else:
             st.warning(" Healthy: Sustainable operations.")
         else:
             st.error(" Critical: Low margins.")
+
