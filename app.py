@@ -47,7 +47,6 @@ def get_class_advice(students, cap):
 st.set_page_config(page_title="Smart-Resource-Allocation-Optimizer", layout="wide")
 
 # --- GLOBAL SIDEBAR SETUP ---
-# Title moved to Sidebar
 st.sidebar.markdown("### Smart Resources Allocation Institutional Option")
 
 # Scrolling Expiry Notice in Sidebar
@@ -80,7 +79,6 @@ if not st.session_state.auth:
         elif check_auth(key_input) and school_input:
             st.session_state.auth = True
             st.session_state.school_name = school_input
-            # App Identifier for future Google Sheet connection
             st.session_state.app_id = f"App_{school_input.replace(' ', '_')}"
             st.rerun()
         elif not school_input:
@@ -90,10 +88,9 @@ if not st.session_state.auth:
 
 # --- AUTHORIZED DASHBOARD ---
 else:
-    # Sidebar Status Info
-    st.sidebar.info(f"Institution: {st.session_state.school_name}\nStatus: Active\nID: {st.session_state.get('app_id')}")
-
-    # Side-bar Action Buttons
+    # Sidebar Status & Action Buttons
+    st.sidebar.info(f"Institution: {st.session_state.school_name}\nStatus: Active")
+    
     if st.sidebar.button("💾 Save Data", use_container_width=True):
         st.sidebar.success("Data Saved")
 
@@ -101,86 +98,96 @@ else:
         st.session_state.auth = False
         st.rerun()
 
-    # Main Area Content
-    tabs = st.tabs([" Staff Audit", " Sections Profit", " Admin Expenses", " Final Audit Gauge"])
+    # --- TOP HEADER (MAIN AREA) ---
+    st.markdown("# Smart Resources Allocation Institutional Option")
+    st.divider()
 
-    # --- TAB 1: STAFF AUDIT ---
-    with tabs[0]:
-        st.subheader("Teacher Capacity & ROI Audit")
-        staff_data = pd.DataFrame([
-            {"Teacher Name": "Teacher 1", "Salary": 45000, "Reporting Unit": "Daily", "Teacher Capacity": 8, "Assigned Periods": 6}
-        ])
-        col_config = {
-            "Reporting Unit": st.column_config.SelectboxColumn(
-                "Reporting Unit", options=["Daily", "Weekly", "Monthly"], required=True,
-            )
-        }
-        edited_staff = st.data_editor(staff_data, num_rows="dynamic", key="staff_audit_table", column_config=col_config, use_container_width=True)
-        if not edited_staff.empty:
-            staff_res = edited_staff.apply(analyze_staff_row, axis=1)
-            edited_staff[['Total Monthly', 'Cost/Period', 'Loading Status', 'Strategic Advice']] = staff_res
-            st.dataframe(edited_staff, use_container_width=True)
+    # --- INITIALIZE CALCULATION PLACEHOLDERS ---
+    # These containers allow us to display the summary at the TOP while processing the data BELOW
+    summary_container = st.container()
+    
+    st.divider()
 
-    # --- TAB 2: SECTIONS PROFIT ---
-    with tabs[1]:
-        def handle_sec(name, key_prefix):
-            st.subheader(f" {name} Revenue & Class Management")
-            class_df = pd.DataFrame([{"Class": "Grade 1", "Students": 30, "Fee": 5000, "Room Capacity": 40}])
-            edited_cls = st.data_editor(class_df, num_rows="dynamic", key=f"cls_{key_prefix}", use_container_width=True)
-            total_rev = 0
-            if not edited_cls.empty:
-                edited_cls['Revenue'] = edited_cls['Students'] * edited_cls['Fee']
-                total_rev = edited_cls['Revenue'].sum()
-                edited_cls['Advice'] = edited_cls.apply(lambda x: get_class_advice(x['Students'], x['Room Capacity']), axis=1)
-                st.table(edited_cls[['Class', 'Students', 'Advice']])
-            salaries = st.number_input(f"Total Staff Salaries for {name}", value=100000, key=f"sal_{key_prefix}")
-            sec_profit = total_rev - salaries
-            st.metric(f"{name} Gross Contribution", f"{sec_profit} PKR")
-            return total_rev, sec_profit
+    # --- SECTION 1: START ORDER (STAFF AUDIT) ---
+    st.header("1. Start Order Section")
+    staff_data = pd.DataFrame([
+        {"Teacher Name": "Teacher 1", "Salary": 45000, "Reporting Unit": "Daily", "Teacher Capacity": 8, "Assigned Periods": 6}
+    ])
+    col_config = {"Reporting Unit": st.column_config.SelectboxColumn("Reporting Unit", options=["Daily", "Weekly", "Monthly"], required=True)}
+    edited_staff = st.data_editor(staff_data, num_rows="dynamic", key="staff_audit_table", column_config=col_config, use_container_width=True)
+    
+    staff_total_salary = 0
+    if not edited_staff.empty:
+        staff_res = edited_staff.apply(analyze_staff_row, axis=1)
+        edited_staff[['Total Monthly', 'Cost/Period', 'Loading Status', 'Strategic Advice']] = staff_res
+        st.dataframe(edited_staff, use_container_width=True)
+        staff_total_salary = edited_staff['Salary'].sum()
 
-        p_rev, p_net = handle_sec("Primary", "pri")
-        st.divider()
-        s_rev, s_net = handle_sec("Secondary", "sec")
-        st.divider()
-        c_rev, c_net = handle_sec("College", "col")
+    st.divider()
 
-    # --- TAB 3: ADMIN & OTHER EXPENSES ---
-    with tabs[2]:
-        st.subheader(" General & Miscellaneous Expenses")
-        exp_data = pd.DataFrame([
-            {"Expense Name": "Building Rent", "Amount": 50000, "Explanation": "Monthly fixed rent"},
-            {"Expense Name": "Electricity Bill", "Amount": 20000, "Explanation": "Utilities"},
-        ])
-        edited_exp = st.data_editor(exp_data, num_rows="dynamic", key="admin_exp_table", use_container_width=True)
-        total_admin_exp = edited_exp['Amount'].sum() if not edited_exp.empty else 0
-        st.error(f"Total Operational/Misc Costs: {total_admin_exp} PKR")
+    # --- SECTION 2: PROFIT ADMIN EXPRESS (SECTIONS PROFIT) ---
+    st.header("2. Profit Admin Express")
+    def handle_sec(name, key_prefix):
+        st.subheader(f" {name} Revenue & Class Management")
+        class_df = pd.DataFrame([{"Class": "Grade 1", "Students": 30, "Fee": 5000, "Room Capacity": 40}])
+        edited_cls = st.data_editor(class_df, num_rows="dynamic", key=f"cls_{key_prefix}", use_container_width=True)
+        total_rev = 0
+        if not edited_cls.empty:
+            edited_cls['Revenue'] = edited_cls['Students'] * edited_cls['Fee']
+            total_rev = edited_cls['Revenue'].sum()
+            edited_cls['Advice'] = edited_cls.apply(lambda x: get_class_advice(x['Students'], x['Room Capacity']), axis=1)
+            st.table(edited_cls[['Class', 'Students', 'Advice']])
+        salaries = st.number_input(f"Total Staff Salaries for {name}", value=100000, key=f"sal_{key_prefix}")
+        sec_profit = total_rev - salaries
+        st.metric(f"{name} Gross Contribution", f"{sec_profit} PKR")
+        return total_rev, sec_profit
 
-    # --- TAB 4: FINAL AUDIT GAUGE ---
-    with tabs[3]:
-        st.subheader(" Institutional Performance Gauge")
-        total_income = p_rev + s_rev + c_rev
-        total_expenses = (p_rev - p_net) + (s_rev - s_net) + (c_rev - c_net) + total_admin_exp
-        net_profit = total_income - total_expenses
-        
-        # Scoring logic (1-200) - PRESERVED
-        score = max(1, min(200, int((net_profit/total_income)*400))) if total_income > 0 else 1
-        
-        # Profit Level Displayed in Sidebar
-        st.sidebar.divider()
-        st.sidebar.metric("Profit Level", f"{score} / 200")
-        
+    p_rev, p_net = handle_sec("Primary", "pri")
+    s_rev, s_net = handle_sec("Secondary", "sec")
+    c_rev, c_net = handle_sec("College", "col")
+
+    st.divider()
+
+    # --- SECTION 3: FINAL ORDER (ADMIN EXPENSES) ---
+    st.header("3. Final Order")
+    exp_data = pd.DataFrame([
+        {"Expense Name": "Building Rent", "Amount": 50000, "Explanation": "Monthly fixed rent"},
+        {"Expense Name": "Electricity Bill", "Amount": 20000, "Explanation": "Utilities"},
+    ])
+    edited_exp = st.data_editor(exp_data, num_rows="dynamic", key="admin_exp_table", use_container_width=True)
+    total_admin_exp = edited_exp['Amount'].sum() if not edited_exp.empty else 0
+    st.error(f"Total Operational/Misc Costs: {total_admin_exp} PKR")
+
+    st.divider()
+
+    # --- SECTION 4: PROFIT FINAL CALCULATION ---
+    st.header("4. Profit Final Calculation/Data")
+    total_income = p_rev + s_rev + c_rev
+    total_expenses = (p_rev - p_net) + (s_rev - s_net) + (c_rev - c_net) + total_admin_exp
+    net_profit = total_income - total_expenses
+    
+    score = max(1, min(200, int((net_profit/total_income)*400))) if total_income > 0 else 1
+    
+    # Update Sidebar Profit Metric
+    st.sidebar.divider()
+    st.sidebar.metric("Live Profit Level", f"{score} / 200")
+
+    # --- RENDER SUMMARY AT TOP (Priority #1) ---
+    with summary_container:
+        st.subheader("📊 Institutional Summary & Performance Gauge")
         st.header(f"Strategic Profit Level: {score} / 200")
         st.progress(score / 200)
         
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total School Revenue", f"{total_income} PKR")
-        col2.metric("Total Expenses", f"{total_expenses} PKR", delta_color="inverse")
-        col3.metric("Final Take-Home Profit", f"{net_profit} PKR")
+        sm1, sm2, sm3 = st.columns(3)
+        sm1.metric("Total School Revenue", f"{total_income} PKR")
+        sm2.metric("Total Expenses", f"{total_expenses} PKR", delta_color="inverse")
+        sm3.metric("Final Take-Home Profit", f"{net_profit} PKR")
         
         if score > 150:
-            st.success(" Elite Performance: Your institution is highly optimized.")
+            st.success("Elite Performance: Optimized and profitable.")
         elif score > 100:
-            st.warning(" Healthy: Sustainable operations.")
+            st.warning("Healthy: Sustainable, but check expense categories.")
         else:
-            st.error(" Critical: Low margins.")
+            st.error("Critical: Low margins. Review ROI or Expenses.")
 
+    st.write("--- End of Audit Report ---")
