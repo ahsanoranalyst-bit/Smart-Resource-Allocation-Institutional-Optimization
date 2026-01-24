@@ -47,7 +47,7 @@ def get_class_advice(students, cap):
 st.set_page_config(page_title="Smart-Resource-Allocation-Optimizer", layout="wide")
 
 # GLOBAL TITLE (Visible on both Login and Dashboard)
-st.title("Smart-Resource-Allocation-Institutional-Optimization")
+st.title("Smart-Resource-Allocation-Optimization")
 st.divider()
 
 if 'auth' not in st.session_state:
@@ -174,4 +174,5 @@ else:
         if st.button("🚪 Log Out", use_container_width=True):
             st.session_state.auth = False
             st.rerun()
+
 
